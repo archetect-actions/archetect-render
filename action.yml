@@ -65,15 +65,23 @@ runs:
           exit 1
         fi
         
+        echo "Archive contents:"
+        tar -tzf "./$archive_name"
+        
         if ! tar -xzf "./$archive_name"; then
           echo "::error::Failed to extract $archive_name"
           exit 1
         fi
         
+        echo "Contents after extraction:"
+        ls -la
+        
         if [ ! -f "./archetect" ]; then
-          echo "::error::Archetect binary not found after extraction"
+          echo "::error::Archetect binary not found at ./archetect"
           exit 1
         fi
+        
+        chmod +x ./archetect
         
         chmod +x ./archetect
         popd
