@@ -1,0 +1,119 @@
+name: "Archetect Render Action"
+description: "GitHub Action to render Archetypes using Archetect https://github.com/archetect/archetect"
+branding:
+  icon: "activity"
+  color: "blue"
+inputs:
+  version:
+    description: The Archetect version (https://github.com/archetect/archetect/releases)
+    required: false
+    default: "v2.0.4"
+  source:
+    description: The source directory or Git repo containing an Archetype
+    required: true
+  destination:
+    description: The destination of the rendered output
+    required: false
+    default: "."
+  answers:
+    description: Answers in JSON Object (key/value) Format.  Answers may also be applied using 'args'
+    required: false
+    default: "{}"
+  args:
+    description: Additional command-line arguments for the archetect command (e.g. -a, -A, -s)
+    required: false
+    default: ""
+runs:
+  using: "composite"
+  steps:
+    - name: Install Archetect
+      shell: bash
+      run: |
+        echo "Download Archetect"
+        version="${{ inputs.version }}"
+        
+        # Determine OS and architecture
+        case "${{ runner.os }}" in
+          "Linux")
+            os="linux"
+            arch="x86_64"
+            ;;
+          "macOS")
+            os="macos"
+            case "${{ runner.arch }}" in
+              "ARM64") arch="arm64" ;;
+              *) arch="x86_64" ;;
+            esac
+            ;;
+          "Windows")
+            echo "::error::Windows is not currently supported"
+            exit 1
+            ;;
+          *)
+            echo "::error::Unsupported OS: ${{ runner.os }}"
+            exit 1
+            ;;
+        esac
+        
+        pushd "${{ runner.temp }}"
+        archive_name="archetect-$version-$os-$arch.tar.gz"
+        download_url="https://github.com/archetect/archetect/releases/download/$version/$archive_name"
+        
+        echo "Downloading $download_url"
+        curl -LO "$download_url" 2>/dev/null
+        tar -xzf "./$archive_name"
+        chmod +x ./archetect
+        popd
+        echo "ARCHETECT=${{ runner.temp }}/archetect" >> $GITHUB_ENV
+    - name: Write Answers
+      shell: bash
+      run: |
+        pushd "${{ runner.temp }}"
+        answers='${{ inputs.answers }}'
+        
+        # Check if answers is already valid JSON, otherwise wrap as JSON
+        if echo "$answers" | jq . >/dev/null 2>&1; then
+          echo "$answers" > answers.json
+        else
+          # If not valid JSON, treat as empty object
+          echo '{}' > answers.json
+        fi
+        
+        echo "Generated answers file:"
+        cat answers.json
+        popd
+        echo "ANSWERS=${{ runner.temp }}/answers.json" >> $GITHUB_ENV
+    - name: Render Archetype
+      shell: bash
+      run: |
+        echo "Rendering Archetype:"
+        echo "  Source: ${{ inputs.source }}"
+        echo "  Destination: ${{ inputs.destination }}"
+        echo "  Arguments: ${{ inputs.args }}"
+        echo "  Version: ${{ inputs.version }}"
+        echo ""
+        echo "JSON Answers:"
+        cat "$ANSWERS"
+        echo ""
+        
+        # Build command with proper argument ordering
+        cmd="$ARCHETECT render --headless"
+        
+        # Add answers file if it exists and has content
+        if [ -f "$ANSWERS" ] && [ -s "$ANSWERS" ]; then
+          cmd="$cmd -A \"$ANSWERS\""
+        fi
+        
+        # Add source
+        cmd="$cmd \"${{ inputs.source }}\""
+        
+        # Add additional args if provided
+        if [ -n "${{ inputs.args }}" ]; then
+          cmd="$cmd ${{ inputs.args }}"
+        fi
+        
+        # Add destination
+        cmd="$cmd \"${{ inputs.destination }}\""
+        
+        echo "Executing: $cmd"
+        eval "$cmd"
