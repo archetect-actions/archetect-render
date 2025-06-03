@@ -7,7 +7,7 @@ inputs:
   version:
     description: The Archetect version (https://github.com/archetect/archetect/releases)
     required: false
-    default: "v2.0.4"
+    default: "v2.0.5"
   source:
     description: The source directory or Git repo containing an Archetype
     required: true
@@ -60,8 +60,21 @@ runs:
         download_url="https://github.com/archetect/archetect/releases/download/$version/$archive_name"
         
         echo "Downloading $download_url"
-        curl -LO "$download_url" 2>/dev/null
-        tar -xzf "./$archive_name"
+        if ! curl -LO "$download_url"; then
+          echo "::error::Failed to download Archetect from $download_url"
+          exit 1
+        fi
+        
+        if ! tar -xzf "./$archive_name"; then
+          echo "::error::Failed to extract $archive_name"
+          exit 1
+        fi
+        
+        if [ ! -f "./archetect" ]; then
+          echo "::error::Archetect binary not found after extraction"
+          exit 1
+        fi
+        
         chmod +x ./archetect
         popd
         echo "ARCHETECT=${{ runner.temp }}/archetect" >> $GITHUB_ENV
