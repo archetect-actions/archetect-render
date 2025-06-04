@@ -87,20 +87,13 @@ runs:
         pushd "${{ runner.temp }}"
         answers='${{ inputs.answers }}'
         
-        # If answers starts with $, try to expand it as an environment variable
-        if [[ "$answers" =~ ^\$[A-Za-z_][A-Za-z0-9_]*$ ]]; then
-          var_name="${answers#\$}"
-          answers="${!var_name}"
-          echo "Expanded environment variable $var_name"
-        fi
-        
         echo "Processing answers: $answers"
         
-        # Check if answers is already valid JSON, otherwise wrap as JSON
+        # Validate and write JSON answers
         if echo "$answers" | jq . >/dev/null 2>&1; then
           echo "$answers" > answers.json
         else
-          # If not valid JSON, treat as empty object
+          echo "::warning::Invalid JSON provided for answers, using empty object"
           echo '{}' > answers.json
         fi
         
