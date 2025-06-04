@@ -65,22 +65,19 @@ runs:
           exit 1
         fi
         
-        echo "Archive contents:"
-        tar -tzf "./$archive_name"
-        
         if ! tar -xzf "./$archive_name"; then
           echo "::error::Failed to extract $archive_name"
           exit 1
         fi
         
-        echo "Contents after extraction:"
-        ls -la
-        
-        if [ ! -f "./archetect" ]; then
-          echo "::error::Archetect binary not found at ./archetect"
+        # The binary is in a subdirectory, move it to the current directory
+        extracted_dir="archetect-$version-$os-$arch"
+        if [ ! -f "./$extracted_dir/archetect" ]; then
+          echo "::error::Archetect binary not found at ./$extracted_dir/archetect"
           exit 1
         fi
         
+        mv "./$extracted_dir/archetect" "./archetect"
         chmod +x ./archetect
         
         chmod +x ./archetect
