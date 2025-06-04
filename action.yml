@@ -87,6 +87,17 @@ runs:
         pushd "${{ runner.temp }}"
         answers='${{ inputs.answers }}'
         
+        # Handle case where answers is literally "$ANSWERS" - expand the environment variable
+        if [ "$answers" = "\$ANSWERS" ]; then
+          if [ -n "$ANSWERS" ]; then
+            answers="$ANSWERS"
+            echo "Expanded \$ANSWERS environment variable"
+          else
+            echo "::warning::\$ANSWERS environment variable is not set"
+            answers="{}"
+          fi
+        fi
+        
         echo "Processing answers: $answers"
         
         # Validate and write JSON answers
