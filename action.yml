@@ -79,8 +79,6 @@ runs:
         
         mv "./$extracted_dir/archetect" "./archetect"
         chmod +x ./archetect
-        
-        chmod +x ./archetect
         popd
         echo "ARCHETECT=${{ runner.temp }}/archetect" >> $GITHUB_ENV
     - name: Write Answers
@@ -88,6 +86,15 @@ runs:
       run: |
         pushd "${{ runner.temp }}"
         answers='${{ inputs.answers }}'
+        
+        # If answers starts with $, try to expand it as an environment variable
+        if [[ "$answers" =~ ^\$[A-Za-z_][A-Za-z0-9_]*$ ]]; then
+          var_name="${answers#\$}"
+          answers="${!var_name}"
+          echo "Expanded environment variable $var_name"
+        fi
+        
+        echo "Processing answers: $answers"
         
         # Check if answers is already valid JSON, otherwise wrap as JSON
         if echo "$answers" | jq . >/dev/null 2>&1; then
