@@ -98,6 +98,12 @@ runs:
           fi
         fi
         
+        # Check if answers is a file path
+        if [ -f "$answers" ]; then
+          echo "Reading answers from file: $answers"
+          answers=$(cat "$answers")
+        fi
+        
         echo "Processing answers: $answers"
         
         # Validate and write JSON answers
@@ -111,7 +117,7 @@ runs:
         echo "Generated answers file:"
         cat answers.json
         popd
-        echo "ANSWERS=${{ runner.temp }}/answers.json" >> $GITHUB_ENV
+        echo "ANSWERS_FILE=${{ runner.temp }}/answers.json" >> $GITHUB_ENV
     - name: Render Archetype
       shell: bash
       run: |
@@ -122,15 +128,15 @@ runs:
         echo "  Version: ${{ inputs.version }}"
         echo ""
         echo "JSON Answers:"
-        cat "$ANSWERS"
+        cat "$ANSWERS_FILE"
         echo ""
         
         # Build command with proper argument ordering
         cmd="$ARCHETECT render --headless"
         
         # Add answers file if it exists and has content
-        if [ -f "$ANSWERS" ] && [ -s "$ANSWERS" ]; then
-          cmd="$cmd -A \"$ANSWERS\""
+        if [ -f "$ANSWERS_FILE" ] && [ -s "$ANSWERS_FILE" ]; then
+          cmd="$cmd -A \"$ANSWERS_FILE\""
         fi
         
         # Add source
